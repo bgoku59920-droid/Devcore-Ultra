@@ -1,0 +1,2565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Devcore Ultra</title>
+
+<!-- ═══ PWA META TAGS ═══ -->
+<meta name="application-name" content="Devcore Ultra">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Devcore Ultra">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="msapplication-TileColor" content="#5a5248">
+<meta name="msapplication-TileImage" content="icons/icon-144.png">
+<meta name="theme-color" content="#5a5248">
+<meta name="description" content="Professional device capability and performance testing lab. Push your hardware to its absolute limit.">
+
+<!-- ═══ ICONS ═══ -->
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-72.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
+<link rel="apple-touch-icon" sizes="128x128" href="icons/icon-128.png">
+
+<!-- ═══ MANIFEST ═══ -->
+<link rel="manifest" href="manifest.json">
+
+<style>
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --stone: #8a8070;
+  --stone-light: #c8bfb0;
+  --stone-dark: #5a5248;
+  --clay: #b87a5a;
+  --clay-light: #d4a080;
+  --clay-dark: #8a5a3a;
+  --blue: #6a8faf;
+  --blue-light: #a0bfd0;
+  --blue-dark: #4a6f8f;
+  --green: #7a9a7a;
+  --green-light: #a8c0a0;
+  --green-dark: #5a7a5a;
+  --bg: #e8e4de;
+  --bg2: #f0ece6;
+  --bg3: #d8d4ce;
+  --text: #2a2520;
+  --text2: #5a5248;
+  --shadow: rgba(0,0,0,0.18);
+  --shadow2: rgba(0,0,0,0.08);
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* ═══════════════════════════════════════════
+   SCREENS
+═══════════════════════════════════════════ */
+.screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.screen.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ═══════════════════════════════════════════
+   FPS COUNTER
+═══════════════════════════════════════════ */
+#fps-counter {
+  position: fixed; top: 10px; right: 10px; z-index: 9999;
+  background: var(--stone-dark);
+  color: #fff;
+  font-size: 11px; font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  letter-spacing: 0.5px;
+  min-width: 60px;
+  text-align: center;
+  transition: background 0.5s ease;
+}
+
+/* ═══════════════════════════════════════════
+   LOW-POLY LOADER
+═══════════════════════════════════════════ */
+#loader-overlay {
+  position: fixed; inset: 0; z-index: 8000;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 24px;
+  transition: opacity 0.5s ease;
+}
+#loader-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loader-poly {
+  width: 60px; height: 60px;
+  position: relative;
+  animation: loaderSpin 1.4s linear infinite;
+}
+.loader-poly svg { width: 100%; height: 100%; }
+
+@keyframes loaderSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader-bar-wrap {
+  width: 200px; height: 8px;
+  background: var(--bg3);
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  overflow: hidden;
+}
+.loader-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--clay), var(--blue));
+  transition: width 0.1s linear;
+}
+.loader-text {
+  font-size: 12px; font-weight: 600;
+  color: var(--text2);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════
+   MODAL OVERLAY
+═══════════════════════════════════════════ */
+#modal-overlay {
+  position: fixed; inset: 0; z-index: 7000;
+  background: rgba(40,35,30,0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(2px);
+}
+#modal-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-box {
+  background: var(--bg2);
+  max-width: 340px; width: 100%;
+  padding: 28px 24px 20px;
+  position: relative;
+  clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  box-shadow: 0 8px 32px var(--shadow);
+}
+.modal-box::before {
+  content: '';
+  position: absolute; bottom: -4px; left: 8px; right: 8px; height: 4px;
+  background: var(--stone-dark);
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  opacity: 0.35;
+}
+.modal-title {
+  font-size: 16px; font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  border-left: 3px solid var(--clay);
+  padding-left: 10px;
+}
+.modal-body {
+  font-size: 13px; color: var(--text2);
+  line-height: 1.6; margin-bottom: 20px;
+}
+.modal-buttons {
+  display: flex; gap: 10px; justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════
+   LOW-POLY 3D BUTTONS
+═══════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.8px; text-transform: uppercase;
+  padding: 12px 22px;
+  border: none; cursor: pointer;
+  position: relative;
+  transition: transform 0.08s ease, filter 0.08s ease;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+.btn::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 4px; right: 4px; height: 4px;
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  transition: bottom 0.08s ease, height 0.08s ease;
+}
+.btn:active { transform: translateY(3px); }
+.btn:active::after { bottom: -2px; height: 2px; }
+
+.btn-primary { background: var(--clay); color: #fff; }
+.btn-primary::after { background: var(--clay-dark); }
+
+.btn-secondary { background: var(--stone-light); color: var(--text); }
+.btn-secondary::after { background: var(--stone); }
+
+.btn-danger { background: #b85a5a; color: #fff; }
+.btn-danger::after { background: #8a3a3a; }
+
+.btn-blue { background: var(--blue); color: #fff; }
+.btn-blue::after { background: var(--blue-dark); }
+
+.btn-green { background: var(--green); color: #fff; }
+.btn-green::after { background: var(--green-dark); }
+
+.btn-sm { padding: 8px 16px; font-size: 11px; }
+.btn-lg { padding: 16px 28px; font-size: 14px; }
+.btn-full { width: 100%; }
+
+/* ═══════════════════════════════════════════
+   PWA INSTALL BANNER
+═══════════════════════════════════════════ */
+#pwa-install-banner {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 6500;
+  background: var(--bg2);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 -3px 12px var(--shadow2);
+  transform: translateY(100%);
+  transition: transform 0.4s ease;
+  border-top: 2px solid var(--stone-light);
+}
+#pwa-install-banner.visible {
+  transform: translateY(0);
+}
+.install-banner-icon {
+  width: 36px; height: 36px; flex-shrink: 0;
+}
+.install-banner-text {
+  flex: 1;
+}
+.install-banner-title {
+  font-size: 12px; font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+.install-banner-sub {
+  font-size: 10px; color: var(--text2);
+  letter-spacing: 0.5px;
+}
+.install-banner-btns {
+  display: flex; gap: 8px; flex-shrink: 0;
+}
+
+/* PWA offline indicator */
+#offline-indicator {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9998;
+  background: var(--clay);
+  color: #fff;
+  font-size: 10px; font-weight: 700;
+  text-align: center;
+  padding: 4px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+}
+#offline-indicator.visible {
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════
+   AGREEMENT SCREEN
+═══════════════════════════════════════════ */
+#screen-agreement {
+  background: var(--bg);
+  justify-content: center;
+  padding: 0;
+}
+
+.agreement-wrap {
+  width: 100%; max-width: 480px;
+  height: 100%;
+  display: flex; flex-direction: column;
+  padding: 20px 20px 0;
+}
+
+.app-logo {
+  text-align: center;
+  padding: 24px 0 16px;
+  flex-shrink: 0;
+}
+.app-logo-icon {
+  width: 56px; height: 56px;
+  margin: 0 auto 10px;
+  display: block;
+}
+.app-name {
+  font-size: 22px; font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--text);
+  text-transform: uppercase;
+}
+.app-tagline {
+  font-size: 11px; color: var(--text2);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.agreement-card {
+  background: var(--bg2);
+  flex: 1;
+  margin: 16px 0 0;
+  padding: 20px;
+  overflow-y: auto;
+  position: relative;
+  clip-path: polygon(16px 0%, 100% 0%, calc(100% - 4px) calc(100% - 16px), calc(100% - 16px) 100%, 0% 100%, 4px 16px);
+  box-shadow: inset 0 2px 8px var(--shadow2);
+}
+
+.agreement-title {
+  font-size: 15px; font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--stone-light);
+}
+.agreement-text {
+  font-size: 13px; color: var(--text2);
+  line-height: 1.75;
+}
+
+.agreement-footer {
+  padding: 16px 0 24px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+#agree-countdown {
+  font-size: 11px; color: var(--text2);
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+  min-height: 18px;
+}
+
+/* ═══════════════════════════════════════════
+   MAIN DASHBOARD
+═══════════════════════════════════════════ */
+#screen-dashboard {
+  background: var(--bg);
+  overflow-y: auto;
+  padding-bottom: 20px;
+}
+
+.dash-header {
+  width: 100%; background: var(--bg2);
+  padding: 16px 20px 14px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 2px 8px var(--shadow2);
+  flex-shrink: 0;
+  position: relative;
+}
+.dash-logo-sm {
+  width: 32px; height: 32px;
+}
+.dash-title {
+  font-size: 16px; font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--text);
+  text-transform: uppercase;
+  flex: 1;
+}
+.dash-pwa-mode {
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--green-dark);
+  background: var(--green-light);
+  padding: 2px 8px;
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  display: none;
+}
+.dash-pwa-mode.visible { display: block; }
+
+.dash-grid {
+  width: 100%; max-width: 480px;
+  padding: 20px 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-self: flex-start;
+}
+
+.dash-card {
+  background: var(--bg2);
+  padding: 20px 16px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 10px;
+  cursor: pointer;
+  position: relative;
+  clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+  box-shadow: 0 4px 0 var(--stone-light), 0 6px 12px var(--shadow2);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.dash-card::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 5px; right: 5px; height: 4px;
+  background: var(--stone);
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  opacity: 0.4;
+}
+.dash-card:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--stone-light), 0 2px 6px var(--shadow2);
+}
+.dash-card:active::after { bottom: -2px; height: 2px; }
+
+.span-2 {
+  grid-column: span 2;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.card-icon { width: 40px; height: 40px; }
+.card-label {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text2);
+  text-align: center;
+}
+
+.dash-status-bar {
+  grid-column: span 2;
+  background: var(--bg3);
+  padding: 10px 14px;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  display: inline-block;
+  margin-right: 6px;
+  transition: background 0.5s;
+}
+.status-text {
+  font-size: 11px; font-weight: 600;
+  color: var(--text2);
+  letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════════
+   DEVICE INFO SCREEN
+═══════════════════════════════════════════ */
+#screen-device {
+  overflow-y: auto;
+  padding-bottom: 30px;
+  align-items: stretch;
+}
+
+.screen-header {
+  width: 100%; background: var(--bg2);
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 2px 8px var(--shadow2);
+  flex-shrink: 0;
+}
+.back-btn {
+  width: 34px; height: 34px;
+  background: var(--stone-light);
+  border: none; cursor: pointer;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.08s;
+  color: var(--text);
+  font-size: 16px;
+  padding: 0;
+  flex-shrink: 0;
+}
+.back-btn:active { transform: scale(0.94); }
+.screen-title {
+  font-size: 15px; font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.device-cards {
+  padding: 16px;
+  width: 100%;
+  max-width: 480px;
+  align-self: center;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.info-card {
+  background: var(--bg2);
+  padding: 16px;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  box-shadow: 0 3px 0 var(--stone-light), 0 5px 10px var(--shadow2);
+  position: relative;
+}
+.info-card::after {
+  content: '';
+  position: absolute;
+  bottom: -3px; left: 4px; right: 4px; height: 3px;
+  background: var(--stone);
+  clip-path: polygon(3px 0%, 100% 0%, calc(100% - 3px) 100%, 0% 100%);
+  opacity: 0.3;
+}
+
+.info-card-title {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--clay);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--bg3);
+}
+
+.info-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--bg3);
+  gap: 8px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-label {
+  font-size: 11px; color: var(--text2);
+  flex-shrink: 0;
+}
+.info-value {
+  font-size: 11px; font-weight: 600;
+  color: var(--text);
+  text-align: right;
+  word-break: break-word;
+}
+
+.tier-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1px;
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  color: #fff;
+}
+.tier-low { background: #b85a5a; }
+.tier-medium { background: var(--clay); }
+.tier-high { background: var(--blue); }
+.tier-extreme { background: var(--green-dark); }
+
+.mem-bar-wrap {
+  width: 100%; height: 6px;
+  background: var(--bg3);
+  clip-path: polygon(3px 0%, 100% 0%, calc(100% - 3px) 100%, 0% 100%);
+  margin-top: 6px; overflow: hidden;
+}
+.mem-bar {
+  height: 100%;
+  background: var(--clay);
+  transition: width 1s ease;
+}
+
+/* ═══════════════════════════════════════════
+   PERFORMANCE MONITOR SCREEN
+═══════════════════════════════════════════ */
+#screen-monitor {
+  overflow-y: auto;
+  padding-bottom: 30px;
+  align-items: stretch;
+}
+
+.monitor-cards {
+  padding: 16px;
+  width: 100%;
+  max-width: 480px;
+  align-self: center;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.metric-big {
+  text-align: center;
+  padding: 20px;
+}
+.metric-big-value {
+  font-size: 48px; font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+.metric-big-unit {
+  font-size: 14px; font-weight: 600;
+  color: var(--text2);
+  letter-spacing: 2px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.metric-cell {
+  background: var(--bg3);
+  padding: 12px;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  text-align: center;
+}
+.metric-cell-value {
+  font-size: 20px; font-weight: 700;
+  color: var(--text);
+}
+.metric-cell-label {
+  font-size: 10px; color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#fps-sparkline {
+  width: 100%;
+  height: 60px;
+  display: block;
+}
+
+/* ═══════════════════════════════════════════
+   STABILITY SCREEN
+═══════════════════════════════════════════ */
+#screen-stability {
+  overflow-y: auto;
+  padding-bottom: 30px;
+  align-items: stretch;
+}
+
+.stability-cards {
+  padding: 16px;
+  width: 100%;
+  max-width: 480px;
+  align-self: center;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.risk-meter {
+  width: 100%;
+  padding: 16px 0 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.risk-label {
+  font-size: 12px; color: var(--text2);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.risk-bar-outer {
+  width: 100%; height: 12px;
+  background: var(--bg3);
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  overflow: hidden;
+  position: relative;
+}
+.risk-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--clay), #b85a5a);
+  width: 30%;
+  transition: width 0.5s ease;
+}
+.risk-value {
+  font-size: 22px; font-weight: 800;
+  color: var(--text);
+}
+
+/* ═══════════════════════════════════════════
+   SHADER BENCHMARK SCREEN
+═══════════════════════════════════════════ */
+#screen-shader {
+  background: var(--bg);
+  padding: 0;
+  overflow: hidden;
+}
+
+#shader-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.shader-ui {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 16px;
+  background: linear-gradient(transparent, rgba(232,228,222,0.92) 40%);
+  display: flex; flex-direction: column; gap: 10px;
+  z-index: 10;
+}
+
+.shader-metrics {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+.shader-badge {
+  background: rgba(90,82,72,0.75);
+  color: #fff;
+  font-size: 10px; font-weight: 700;
+  padding: 4px 10px;
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(4px);
+}
+
+.shader-controls {
+  display: flex; gap: 10px; align-items: center;
+}
+
+.intensity-bar-wrap {
+  flex: 1; height: 8px;
+  background: rgba(90,82,72,0.3);
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  overflow: hidden;
+}
+.intensity-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--clay), #b85a5a);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.shader-stop-btn {
+  background: #b85a5a;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  text-transform: uppercase;
+  box-shadow: 0 3px 0 #8a3a3a;
+  transition: transform 0.08s;
+  flex-shrink: 0;
+}
+.shader-stop-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #8a3a3a;
+}
+
+.scroll-hint {
+  position: absolute;
+  top: 60px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(90,82,72,0.6);
+  color: #fff;
+  font-size: 10px; font-weight: 600;
+  padding: 5px 14px;
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  letter-spacing: 1px;
+  z-index: 10;
+  pointer-events: none;
+  transition: opacity 0.5s;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════════ */
+.hidden { display: none !important; }
+.text-center { text-align: center; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg3); }
+::-webkit-scrollbar-thumb { background: var(--stone); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════
+     OFFLINE INDICATOR
+════════════════════════════════ -->
+<div id="offline-indicator">&#9889; OFFLINE MODE — CACHED VERSION</div>
+
+<!-- ════════════════════════════════
+     FPS COUNTER
+════════════════════════════════ -->
+<div id="fps-counter">-- FPS</div>
+
+<!-- ════════════════════════════════
+     GLOBAL LOADER
+════════════════════════════════ -->
+<div id="loader-overlay">
+  <div class="loader-poly">
+    <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="30,2 58,22 48,56 12,56 2,22" fill="none" stroke="#b87a5a" stroke-width="3"/>
+      <polygon points="30,10 50,26 42,50 18,50 10,26" fill="#c8bfb0" stroke="#8a8070" stroke-width="1.5"/>
+      <polygon points="30,18 42,30 36,44 24,44 18,30" fill="#b87a5a" opacity="0.7"/>
+      <polygon points="30,24 38,32 34,40 26,40 22,32" fill="#6a8faf" opacity="0.8"/>
+    </svg>
+  </div>
+  <div class="loader-bar-wrap">
+    <div class="loader-bar" id="loader-bar"></div>
+  </div>
+  <div class="loader-text" id="loader-text">INITIALIZING</div>
+</div>
+
+<!-- ════════════════════════════════
+     MODAL OVERLAY
+════════════════════════════════ -->
+<div id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">Notice</div>
+    <div class="modal-body" id="modal-body">Message</div>
+    <div class="modal-buttons" id="modal-buttons"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     PWA INSTALL BANNER
+════════════════════════════════ -->
+<div id="pwa-install-banner">
+  <svg class="install-banner-icon" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="28,2 54,20 44,52 12,52 2,20" fill="#d8d4ce"/>
+    <polygon points="28,10 48,24 40,48 16,48 8,24" fill="#b87a5a" opacity="0.85"/>
+    <polygon points="28,18 42,30 36,42 20,42 14,30" fill="#6a8faf" opacity="0.9"/>
+  </svg>
+  <div class="install-banner-text">
+    <div class="install-banner-title">Install Devcore Ultra</div>
+    <div class="install-banner-sub">Add to home screen for offline access</div>
+  </div>
+  <div class="install-banner-btns">
+    <button class="btn btn-sm btn-secondary" onclick="dismissInstallBanner()">Not Now</button>
+    <button class="btn btn-sm btn-primary" onclick="triggerInstall()">Install</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN: USER AGREEMENT
+════════════════════════════════ -->
+<div class="screen" id="screen-agreement">
+  <div class="agreement-wrap">
+    <div class="app-logo">
+      <svg class="app-logo-icon" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="28,2 54,20 44,52 12,52 2,20" fill="#d8d4ce"/>
+        <polygon points="28,8 50,24 40,48 16,48 6,24" fill="#c8bfb0" stroke="#8a8070" stroke-width="1"/>
+        <polygon points="28,14 44,28 36,44 20,44 12,28" fill="#b87a5a" opacity="0.85"/>
+        <polygon points="28,20 40,30 34,42 22,42 16,30" fill="#6a8faf" opacity="0.9"/>
+        <polygon points="28,26 36,32 32,40 24,40 20,32" fill="#7a9a7a" opacity="0.9"/>
+        <polygon points="28,30 32,33 30,38 26,38 24,33" fill="#fff" opacity="0.8"/>
+      </svg>
+      <div class="app-name">Devcore Ultra</div>
+      <div class="app-tagline">Device Performance Lab</div>
+    </div>
+
+    <div class="agreement-card">
+      <div class="agreement-title">User Responsibility Agreement</div>
+      <div class="agreement-text">
+        This application contains advanced visual and performance stress tests that can heavily load your device.<br><br>
+        All tests are executed entirely at the user's discretion and risk.<br><br>
+        The developer holds no responsibility for lag, overheating, crashes, data loss, or hardware-related issues.<br><br>
+        The Extreme Volume Shader Benchmark is designed to push your GPU and CPU to their absolute limits. High-end devices will experience significant performance degradation. This is intentional.<br><br>
+        Do not run tests while your device is charging if it runs hot. Ensure your device has adequate ventilation.<br><br>
+        Tests will automatically terminate if critical instability is detected, but this protection is not guaranteed.<br><br>
+        By continuing, you confirm that you are the owner of or have permission to stress-test this device, and that you accept full responsibility for any consequences.<br><br>
+        Continue only if you fully understand and accept these conditions.
+      </div>
+    </div>
+
+    <div class="agreement-footer">
+      <div id="agree-countdown">Please read the agreement... (<span id="countdown-num">5</span>)</div>
+      <button class="btn btn-primary btn-lg btn-full hidden" id="agree-btn">
+        I Understand &amp; Continue
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN: DASHBOARD
+════════════════════════════════ -->
+<div class="screen" id="screen-dashboard">
+  <div class="dash-header">
+    <svg class="dash-logo-sm" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="28,2 54,20 44,52 12,52 2,20" fill="#d8d4ce"/>
+      <polygon points="28,10 48,24 40,48 16,48 8,24" fill="#b87a5a" opacity="0.85"/>
+      <polygon points="28,18 42,30 36,42 20,42 14,30" fill="#6a8faf" opacity="0.9"/>
+    </svg>
+    <div class="dash-title">Devcore Ultra</div>
+    <div class="dash-pwa-mode" id="dash-pwa-badge">PWA</div>
+  </div>
+
+  <div class="dash-grid">
+
+    <!-- Extreme Shader — spans full width -->
+    <div class="dash-card span-2" id="dash-shader" onclick="openShaderWarning()">
+      <svg class="card-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="20,2 38,12 38,28 20,38 2,28 2,12" fill="#b87a5a" opacity="0.2"/>
+        <polygon points="20,6 34,14 34,26 20,34 6,26 6,14" fill="#b87a5a" opacity="0.5"/>
+        <polygon points="20,10 30,16 30,24 20,30 10,24 10,16" fill="#b87a5a"/>
+        <polygon points="20,14 26,18 26,22 20,26 14,22 14,18" fill="#fff" opacity="0.6"/>
+        <polygon points="20,17 24,19 23,23 17,23 16,19" fill="#fff"/>
+      </svg>
+      <div>
+        <div class="card-label">Extreme Volume<br>Shader Benchmark</div>
+      </div>
+    </div>
+
+    <!-- Device Info -->
+    <div class="dash-card" onclick="showScreen('screen-device')">
+      <svg class="card-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="20,2 38,14 32,36 8,36 2,14" fill="#6a8faf" opacity="0.25"/>
+        <polygon points="20,7 34,17 29,33 11,33 6,17" fill="#6a8faf" opacity="0.6"/>
+        <polygon points="20,12 30,20 26,31 14,31 10,20" fill="#6a8faf"/>
+        <rect x="18" y="15" width="4" height="3" fill="#fff" rx="0"/>
+        <rect x="18" y="20" width="4" height="8" fill="#fff" rx="0"/>
+      </svg>
+      <div class="card-label">Device<br>Information</div>
+    </div>
+
+    <!-- Live Monitor -->
+    <div class="dash-card" onclick="showScreen('screen-monitor')">
+      <svg class="card-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="20,2 38,14 32,36 8,36 2,14" fill="#7a9a7a" opacity="0.25"/>
+        <polygon points="20,8 34,18 29,32 11,32 6,18" fill="#7a9a7a" opacity="0.65"/>
+        <polygon points="20,14 30,21 26,31 14,31 10,21" fill="#7a9a7a"/>
+        <polyline points="10,22 15,18 19,24 23,14 28,22 32,20" fill="none" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <div class="card-label">Live<br>Monitor</div>
+    </div>
+
+    <!-- Stability -->
+    <div class="dash-card span-2" onclick="showScreen('screen-stability')">
+      <svg class="card-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="20,2 38,14 32,36 8,36 2,14" fill="#8a8070" opacity="0.2"/>
+        <polygon points="20,8 34,18 29,32 11,32 6,18" fill="#8a8070" opacity="0.5"/>
+        <polygon points="20,14 29,21 25,31 15,31 11,21" fill="#8a8070"/>
+        <polygon points="20,17 26,21 24,27 16,27 14,21" fill="#fff" opacity="0.7"/>
+      </svg>
+      <div class="card-label">Stability &amp; Safety Status</div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="dash-status-bar">
+      <span>
+        <span class="status-dot" id="dash-status-dot"></span>
+        <span class="status-text" id="dash-status-text">ALL SYSTEMS NOMINAL</span>
+      </span>
+      <span class="status-text" id="dash-fps-text">-- FPS</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN: DEVICE INFO
+════════════════════════════════ -->
+<div class="screen" id="screen-device">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('screen-dashboard')">&#8592;</button>
+    <div class="screen-title">Device Information</div>
+  </div>
+  <div class="device-cards" id="device-cards-container">
+    <div class="info-card">
+      <div class="info-card-title">Scanning...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN: LIVE MONITOR
+════════════════════════════════ -->
+<div class="screen" id="screen-monitor">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('screen-dashboard')">&#8592;</button>
+    <div class="screen-title">Live Performance Monitor</div>
+  </div>
+  <div class="monitor-cards">
+
+    <div class="info-card">
+      <div class="info-card-title">Framerate</div>
+      <div class="metric-big">
+        <div class="metric-big-value" id="mon-fps">--</div>
+        <div class="metric-big-unit">FPS</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">FPS History (last 60 frames)</div>
+      <canvas id="fps-sparkline"></canvas>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">Metrics</div>
+      <div class="metric-grid">
+        <div class="metric-cell">
+          <div class="metric-cell-value" id="mon-frametime">--</div>
+          <div class="metric-cell-label">Frame Time (ms)</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-cell-value" id="mon-spike">--</div>
+          <div class="metric-cell-label">Spike Count</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-cell-value" id="mon-avg">--</div>
+          <div class="metric-cell-label">Avg FPS (10s)</div>
+        </div>
+        <div class="metric-cell">
+          <div class="metric-cell-value" id="mon-min">--</div>
+          <div class="metric-cell-label">1% Low FPS</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">Frame Consistency</div>
+      <div class="risk-meter">
+        <span class="risk-label">Variance</span>
+        <div class="risk-bar-outer">
+          <div class="risk-bar-inner" id="mon-variance-bar" style="width:5%"></div>
+        </div>
+        <span class="risk-value" id="mon-variance-val">Stable</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN: STABILITY
+════════════════════════════════ -->
+<div class="screen" id="screen-stability">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('screen-dashboard')">&#8592;</button>
+    <div class="screen-title">Stability &amp; Safety</div>
+  </div>
+  <div class="stability-cards">
+
+    <div class="info-card">
+      <div class="info-card-title">Risk Assessment</div>
+      <div class="risk-meter">
+        <span class="risk-label">Instability Risk</span>
+        <div class="risk-bar-outer">
+          <div class="risk-bar-inner" id="risk-bar" style="width:10%"></div>
+        </div>
+        <span class="risk-value" id="risk-value-text">Low</span>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">System Indicators</div>
+      <div class="info-row">
+        <span class="info-label">FPS Stability</span>
+        <span class="info-value" id="stab-fps-stability">Good</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Frame Variance</span>
+        <span class="info-value" id="stab-frame-var">Normal</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Stress Test Active</span>
+        <span class="info-value" id="stab-test-active">No</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Auto-Protection</span>
+        <span class="info-value" style="color:var(--green)">Armed</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Safe FPS Threshold</span>
+        <span class="info-value">12 FPS</span>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">Performance Tier</div>
+      <div style="padding:12px 0; text-align:center;">
+        <span class="tier-badge" id="stab-tier">Analyzing...</span>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">Memory Pressure</div>
+      <div class="mem-bar-wrap">
+        <div class="mem-bar" id="stab-mem-bar" style="width:20%"></div>
+      </div>
+      <div style="font-size:11px; color:var(--text2); margin-top:6px;" id="stab-mem-text">Estimating...</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">PWA Status</div>
+      <div class="info-row">
+        <span class="info-label">Install Mode</span>
+        <span class="info-value" id="stab-pwa-mode">Checking...</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">SW Status</span>
+        <span class="info-value" id="stab-sw-status">Checking...</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Cache Status</span>
+        <span class="info-value" id="stab-cache-status">Checking...</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Network</span>
+        <span class="info-value" id="stab-network-status">Online</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCREEN: SHADER BENCHMARK
+════════════════════════════════ -->
+<div class="screen" id="screen-shader">
+  <canvas id="shader-canvas"></canvas>
+
+  <div class="scroll-hint" id="scroll-hint">SWIPE / SCROLL TO ROTATE &amp; INTENSIFY</div>
+
+  <div class="shader-ui">
+    <div class="shader-metrics">
+      <span class="shader-badge" id="sh-fps-badge">-- FPS</span>
+      <span class="shader-badge" id="sh-particles-badge">-- PARTICLES</span>
+      <span class="shader-badge" id="sh-layers-badge">-- LAYERS</span>
+      <span class="shader-badge" id="sh-timer-badge">0s</span>
+      <span class="shader-badge" id="sh-intensity-badge">WARMING UP</span>
+    </div>
+    <div class="shader-controls">
+      <div class="intensity-bar-wrap">
+        <div class="intensity-bar" id="sh-intensity-bar"></div>
+      </div>
+      <button class="shader-stop-btn" onclick="stopShader()">STOP</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   DEVCORE ULTRA — Main Application Script
+   Single-file PWA | Mobile-first | No external dependencies
+═══════════════════════════════════════════════════════════ */
+
+'use strict';
+
+/* ─────────────────────────────────────────
+   GLOBAL STATE
+───────────────────────────────────────── */
+const State = {
+  currentScreen: null,
+  fpsHistory: [],
+  fpsBuffer10s: [],
+  spikes: 0,
+  lastFrameTime: 0,
+  globalFPS: 0,
+  globalFrameTime: 0,
+  shaderRunning: false,
+  deviceInfo: null,
+  performanceTier: 'Analyzing',
+  lowFPSCounter: 0,
+  agreed: false,
+  pwaInstallPrompt: null,
+  isOnline: navigator.onLine,
+  swRegistered: false,
+  displayMode: 'browser',
+};
+
+/* ─────────────────────────────────────────
+   UTILITY: DOM
+───────────────────────────────────────── */
+const $id = id => document.getElementById(id);
+
+/* ═══════════════════════════════════════
+   PWA — SERVICE WORKER REGISTRATION
+   Inline SW registered via Blob URL
+   so the whole app stays single-file
+═══════════════════════════════════════ */
+
+/* Build the Service Worker code as a string,
+   register it via a Blob URL — fully inline, no external file needed */
+function registerInlineSW() {
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[Devcore SW] Service Workers not supported.');
+    return;
+  }
+
+  /* ── Service Worker source code ── */
+  const SW_CODE = `
+'use strict';
+
+const CACHE_NAME = 'devcore-ultra-v1.0.0';
+const OFFLINE_URL = 'data:text/html,<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#e8e4de"><h2>Devcore Ultra</h2><p>You are offline. Open the app while online at least once to fully cache it.</p><button onclick="location.reload()">Retry</button></body></html>';
+
+const PRECACHE_URLS = [
+  self.location.pathname.replace('sw-inline.js','') || '/',
+];
+
+/* INSTALL */
+self.addEventListener('install', event => {
+  console.log('[Devcore SW] Installing...');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        /* Cache the main page */
+        return fetch(self.registration.scope)
+          .then(response => {
+            if (response.ok) return cache.put(self.registration.scope, response);
+          })
+          .catch(() => console.log('[Devcore SW] Could not pre-cache root on install'));
+      })
+      .then(() => self.skipWaiting())
+      .catch(err => console.error('[Devcore SW] Install error:', err))
+  );
+});
+
+/* ACTIVATE */
+self.addEventListener('activate', event => {
+  console.log('[Devcore SW] Activating...');
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => {
+          console.log('[Devcore SW] Deleting old cache:', k);
+          return caches.delete(k);
+        })
+      )
+    ).then(() => self.clients.claim())
+  );
+});
+
+/* FETCH */
+self.addEventListener('fetch', event => {
+  const req = event.request;
+
+  /* Only handle GET + same-origin */
+  if (req.method !== 'GET') return;
+  if (!req.url.startsWith(self.location.origin)) return;
+
+  /* HTML: network first, cache fallback */
+  if (req.headers.get('Accept') && req.headers.get('Accept').includes('text/html')) {
+    event.respondWith(
+      fetch(req)
+        .then(resp => {
+          if (resp && resp.ok) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then(c => c.put(req, clone));
+          }
+          return resp;
+        })
+        .catch(() =>
+          caches.match(req).then(cached => cached || new Response(OFFLINE_URL, {
+            headers: { 'Content-Type': 'text/html' }
+          }))
+        )
+    );
+    return;
+  }
+
+  /* Assets: cache first, network fallback */
+  event.respondWith(
+    caches.match(req).then(cached => {
+      if (cached) return cached;
+      return fetch(req).then(resp => {
+        if (resp && resp.ok) {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        }
+        return resp;
+      }).catch(() => new Response('', { status: 503 }));
+    })
+  );
+});
+
+/* MESSAGE */
+self.addEventListener('message', event => {
+  const { type } = event.data || {};
+  if (type === 'SKIP_WAITING') self.skipWaiting();
+  if (type === 'CLEAR_CACHE') {
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .then(() => event.ports[0] && event.ports[0].postMessage({ success: true }));
+  }
+  if (type === 'GET_CACHE_STATUS') {
+    caches.keys().then(keys => {
+      event.ports[0] && event.ports[0].postMessage({ success: true, keys });
+    });
+  }
+});
+
+console.log('[Devcore SW] Service Worker loaded. Cache:', '${`devcore-ultra-v1.0.0`}');
+`;
+
+  /* Create a Blob URL for the SW script */
+  const blob = new Blob([SW_CODE], { type: 'application/javascript' });
+  const swURL = URL.createObjectURL(blob);
+
+  /* Register via Blob URL */
+  navigator.serviceWorker.register(swURL, { scope: '/' })
+    .then(reg => {
+      State.swRegistered = true;
+      console.log('[Devcore PWA] SW registered via Blob:', reg.scope);
+
+      /* Handle SW update */
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            onSWUpdateAvailable(reg);
+          }
+        });
+      });
+
+      /* Periodic update check every 30 minutes */
+      setInterval(() => reg.update(), 30 * 60 * 1000);
+
+      /* Update SW & cache status UI */
+      updatePWAStatusUI();
+    })
+    .catch(err => {
+      console.warn('[Devcore PWA] SW registration failed (Blob):', err);
+      /* Blob URL SW may fail in some browsers (e.g. Firefox) due to scope restrictions.
+         This is expected behavior — app still works normally. */
+      updatePWAStatusUI();
+    });
+
+  /* Handle SW controller change (new SW took over) */
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
+}
+
+/* ─── SW Update Available ─── */
+function onSWUpdateAvailable(reg) {
+  showModal(
+    'Update Available',
+    'A new version of Devcore Ultra is ready. Restart now to apply the update.',
+    [
+      { text: 'Later', cls: 'btn-secondary', action: null },
+      {
+        text: 'Update Now',
+        cls: 'btn-primary',
+        action: () => {
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      }
+    ]
+  );
+}
+
+/* ─── PWA Install Prompt ─── */
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  State.pwaInstallPrompt = e;
+  console.log('[Devcore PWA] Install prompt captured.');
+  /* Show install banner after a short delay */
+  setTimeout(() => {
+    const banner = $id('pwa-install-banner');
+    if (banner) banner.classList.add('visible');
+  }, 3000);
+});
+
+window.addEventListener('appinstalled', () => {
+  State.pwaInstallPrompt = null;
+  const banner = $id('pwa-install-banner');
+  if (banner) banner.classList.remove('visible');
+  console.log('[Devcore PWA] App installed.');
+  showModal(
+    'App Installed',
+    'Devcore Ultra has been added to your home screen. You can now run it fully offline anytime.',
+    [{ text: 'Great', cls: 'btn-primary', action: null }]
+  );
+});
+
+/* ─── Detect display mode ─── */
+function detectDisplayMode() {
+  if (window.matchMedia('(display-mode: standalone)').matches) return 'standalone';
+  if (window.matchMedia('(display-mode: fullscreen)').matches) return 'fullscreen';
+  if (navigator.standalone === true) return 'standalone-ios';
+  return 'browser';
+}
+
+/* ─── Trigger install ─── */
+async function triggerInstall() {
+  if (!State.pwaInstallPrompt) return;
+  State.pwaInstallPrompt.prompt();
+  const result = await State.pwaInstallPrompt.userChoice;
+  console.log('[Devcore PWA] Install choice:', result.outcome);
+  State.pwaInstallPrompt = null;
+  dismissInstallBanner();
+}
+
+/* ─── Dismiss install banner ─── */
+function dismissInstallBanner() {
+  const banner = $id('pwa-install-banner');
+  if (banner) banner.classList.remove('visible');
+}
+
+/* ─── Network detection ─── */
+function setupNetworkDetection() {
+  window.addEventListener('online', () => {
+    State.isOnline = true;
+    const ind = $id('offline-indicator');
+    if (ind) ind.classList.remove('visible');
+    updatePWAStatusUI();
+  });
+
+  window.addEventListener('offline', () => {
+    State.isOnline = false;
+    const ind = $id('offline-indicator');
+    if (ind) ind.classList.add('visible');
+    updatePWAStatusUI();
+  });
+
+  /* Set initial state */
+  if (!navigator.onLine) {
+    const ind = $id('offline-indicator');
+    if (ind) ind.classList.add('visible');
+  }
+}
+
+/* ─── Update PWA status in stability screen ─── */
+function updatePWAStatusUI() {
+  State.displayMode = detectDisplayMode();
+  const modeEl = $id('stab-pwa-mode');
+  const swEl = $id('stab-sw-status');
+  const cacheEl = $id('stab-cache-status');
+  const netEl = $id('stab-network-status');
+
+  if (modeEl) modeEl.textContent = State.displayMode === 'browser' ? 'Browser Tab' : 'Installed PWA';
+  if (swEl) swEl.textContent = State.swRegistered ? 'Active' : ('serviceWorker' in navigator ? 'Registering...' : 'Not Supported');
+  if (netEl) netEl.textContent = State.isOnline ? 'Online' : 'Offline (Cached)';
+
+  /* Check cache */
+  if (cacheEl && 'caches' in window) {
+    caches.keys().then(keys => {
+      cacheEl.textContent = keys.length > 0 ? 'Cached (' + keys.length + ' store)' : 'Not cached yet';
+    }).catch(() => { cacheEl.textContent = 'Not available'; });
+  } else if (cacheEl) {
+    cacheEl.textContent = 'Not supported';
+  }
+
+  /* Show PWA badge in dashboard header */
+  const pwaBadge = $id('dash-pwa-badge');
+  if (pwaBadge) {
+    if (State.displayMode !== 'browser') {
+      pwaBadge.classList.add('visible');
+    }
+  }
+}
+
+/* ═══════════════════════════════════════
+   LOADER
+═══════════════════════════════════════ */
+function showLoader(text = 'LOADING') {
+  const o = $id('loader-overlay');
+  const t = $id('loader-text');
+  const b = $id('loader-bar');
+  o.classList.remove('hidden');
+  o.style.opacity = '1';
+  o.style.pointerEvents = 'all';
+  t.textContent = text;
+  b.style.width = '0%';
+}
+
+function animateLoader(duration = 1200) {
+  return new Promise(resolve => {
+    const b = $id('loader-bar');
+    const start = performance.now();
+    function step(now) {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      b.style.width = (eased * 100) + '%';
+      if (p < 1) requestAnimationFrame(step);
+      else resolve();
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+function hideLoader() {
+  const o = $id('loader-overlay');
+  o.style.opacity = '0';
+  o.style.pointerEvents = 'none';
+  setTimeout(() => o.classList.add('hidden'), 500);
+}
+
+/* ═══════════════════════════════════════
+   MODAL
+═══════════════════════════════════════ */
+function showModal(title, body, buttons) {
+  $id('modal-title').textContent = title;
+  $id('modal-body').textContent = body;
+  const btnContainer = $id('modal-buttons');
+  btnContainer.innerHTML = '';
+  buttons.forEach(b => {
+    const el = document.createElement('button');
+    el.className = 'btn btn-sm ' + b.cls;
+    el.textContent = b.text;
+    el.onclick = () => {
+      hideModal();
+      if (b.action) b.action();
+    };
+    btnContainer.appendChild(el);
+  });
+  $id('modal-overlay').classList.add('active');
+}
+
+function hideModal() {
+  $id('modal-overlay').classList.remove('active');
+}
+
+/* ═══════════════════════════════════════
+   SCREEN TRANSITIONS
+═══════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = $id(id);
+  if (target) {
+    target.classList.add('active');
+    State.currentScreen = id;
+  }
+
+  /* Screen-specific on-enter hooks */
+  if (id === 'screen-device')    buildDeviceInfo();
+  if (id === 'screen-monitor')   startSparklineRender();
+  if (id === 'screen-stability') updateStabilityScreen();
+  if (id === 'screen-shader')    startShader();
+  if (id === 'screen-dashboard') onEnterDashboard();
+}
+
+/* ═══════════════════════════════════════
+   GLOBAL FPS MEASUREMENT LOOP
+   Runs forever using rAF
+═══════════════════════════════════════ */
+(function startGlobalFPSLoop() {
+  let lastTime = performance.now();
+  let frames = 0;
+  let elapsed = 0;
+
+  function loop(now) {
+    const delta = now - lastTime;
+    lastTime = now;
+    frames++;
+    elapsed += delta;
+
+    /* Store current frame time */
+    State.globalFrameTime = delta;
+
+    /* Update FPS display every 500ms */
+    if (elapsed >= 500) {
+      const fps = Math.round(frames / (elapsed / 1000));
+      State.globalFPS = fps;
+      frames = 0;
+      elapsed = 0;
+
+      /* Color-coded FPS counter */
+      const fpsEl = $id('fps-counter');
+      fpsEl.textContent = fps + ' FPS';
+      if (fps >= 50) fpsEl.style.background = '#5a7a5a';
+      else if (fps >= 25) fpsEl.style.background = '#b87a5a';
+      else fpsEl.style.background = '#b85a5a';
+    }
+
+    /* Push to rolling history (60-frame) */
+    const instantFPS = delta > 0 ? Math.min(1000 / delta, 120) : 60;
+    State.fpsHistory.push(Math.round(instantFPS));
+    if (State.fpsHistory.length > 60) State.fpsHistory.shift();
+
+    /* Push to 10s buffer (max 600 entries at 60fps) */
+    State.fpsBuffer10s.push(instantFPS);
+    if (State.fpsBuffer10s.length > 600) State.fpsBuffer10s.shift();
+
+    /* Spike detection: frame > 100ms is a spike */
+    if (delta > 100) State.spikes++;
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+
+/* ═══════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════ */
+let dashboardInterval = null;
+
+function onEnterDashboard() {
+  if (dashboardInterval) clearInterval(dashboardInterval);
+  dashboardInterval = setInterval(() => {
+    if (State.currentScreen !== 'screen-dashboard') {
+      clearInterval(dashboardInterval);
+      return;
+    }
+    $id('dash-fps-text').textContent = State.globalFPS + ' FPS';
+    const dot = $id('dash-status-dot');
+    const txt = $id('dash-status-text');
+    if (!State.isOnline) {
+      dot.style.background = '#b87a5a';
+      txt.textContent = 'OFFLINE — CACHED MODE';
+    } else if (State.globalFPS < 20 && State.globalFPS > 0) {
+      dot.style.background = '#b85a5a';
+      txt.textContent = 'LOW PERFORMANCE DETECTED';
+    } else {
+      dot.style.background = 'var(--green)';
+      txt.textContent = 'ALL SYSTEMS NOMINAL';
+    }
+  }, 1000);
+  updatePWAStatusUI();
+}
+
+/* ═══════════════════════════════════════
+   AGREEMENT SCREEN INIT
+═══════════════════════════════════════ */
+function initAgreement() {
+  let count = 5;
+  const countEl = $id('countdown-num');
+  const agreeEl = $id('agree-btn');
+  const descEl  = $id('agree-countdown');
+
+  const timer = setInterval(() => {
+    count--;
+    if (count <= 0) {
+      clearInterval(timer);
+      descEl.textContent = 'You may now proceed.';
+      agreeEl.classList.remove('hidden');
+    } else {
+      countEl.textContent = count;
+    }
+  }, 1000);
+
+  agreeEl.addEventListener('click', () => {
+    State.agreed = true;
+    showLoader('INITIALIZING DEVCORE');
+    animateLoader(1400).then(() => {
+      State.deviceInfo = collectDeviceInfo();
+      hideLoader();
+      showScreen('screen-dashboard');
+    });
+  });
+}
+
+/* ═══════════════════════════════════════
+   DEVICE INFO COLLECTION
+═══════════════════════════════════════ */
+function collectDeviceInfo() {
+  const ua = navigator.userAgent;
+  const info = {};
+
+  /* OS detection */
+  if (/android/i.test(ua)) {
+    const m = ua.match(/Android\s([0-9.]+)/i);
+    info.os = 'Android ' + (m ? m[1] : 'Unknown');
+  } else if (/iphone|ipad|ipod/i.test(ua)) {
+    const m = ua.match(/OS\s([0-9_]+)/i);
+    info.os = 'iOS ' + (m ? m[1].replace(/_/g, '.') : 'Unknown');
+  } else if (/windows/i.test(ua)) {
+    const m = ua.match(/Windows NT\s([0-9.]+)/i);
+    info.os = 'Windows NT ' + (m ? m[1] : '');
+  } else if (/mac/i.test(ua)) {
+    info.os = 'macOS';
+  } else if (/linux/i.test(ua)) {
+    info.os = 'Linux';
+  } else {
+    info.os = 'Unknown';
+  }
+
+  /* Device model */
+  const modelMatch = ua.match(/\(([^;)]+)/);
+  info.model = modelMatch ? modelMatch[1].trim().substring(0, 48) : 'Unknown';
+
+  /* CPU */
+  info.cpuCores = navigator.hardwareConcurrency || 'Unknown';
+  info.cpuArch  = /arm|aarch64/i.test(ua) ? 'ARM' : (/x86_64|amd64/i.test(ua) ? 'x86_64' : 'Unknown');
+
+  /* RAM */
+  info.ram = navigator.deviceMemory ? navigator.deviceMemory + ' GB (est.)' : 'Not exposed';
+
+  /* Screen */
+  info.resolution = screen.width + 'x' + screen.height;
+  info.pixelRatio = window.devicePixelRatio || 1;
+
+  /* Touch */
+  info.touch = ('ontouchstart' in window || navigator.maxTouchPoints > 0) ? 'Yes' : 'No';
+
+  /* Sensors */
+  const sensors = [];
+  if ('DeviceOrientationEvent' in window) sensors.push('Orientation');
+  if ('DeviceMotionEvent' in window) sensors.push('Motion');
+  if ('AmbientLightSensor' in window) sensors.push('Light');
+  if ('Accelerometer' in window) sensors.push('Accelerometer');
+  if ('Gyroscope' in window) sensors.push('Gyroscope');
+  info.sensors = sensors.length ? sensors.join(', ') : 'Basic only';
+
+  /* Network */
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  info.network = conn ? (conn.effectiveType || conn.type || 'Unknown') : 'Not available';
+
+  /* GPU via WebGL */
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+    if (gl) {
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      info.gpu       = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+      info.gpuVendor = ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)   : gl.getParameter(gl.VENDOR);
+    } else {
+      info.gpu = 'WebGL unavailable'; info.gpuVendor = 'Unknown';
+    }
+  } catch(e) {
+    info.gpu = 'Error reading GPU'; info.gpuVendor = 'Unknown';
+  }
+
+  /* Refresh rate placeholder — measured async */
+  info.refreshRate = 'Measuring...';
+
+  /* Battery */
+  info.battery = 'Checking...';
+  if ('getBattery' in navigator) {
+    navigator.getBattery().then(bat => {
+      info.battery = Math.round(bat.level * 100) + '% ' + (bat.charging ? '(Charging)' : '(Discharging)');
+      if (State.currentScreen === 'screen-device') buildDeviceInfo();
+    }).catch(() => { info.battery = 'Not supported'; });
+  } else {
+    info.battery = 'Not supported';
+  }
+
+  /* Performance tier score */
+  const cores = navigator.hardwareConcurrency || 2;
+  const ram   = navigator.deviceMemory || 1;
+  let tierScore = cores * 10 + ram * 5;
+  if (/adreno 6|adreno 7|mali-g7|mali-g9|apple gpu/i.test(info.gpu)) tierScore += 40;
+  else if (/adreno 5|mali-g5|mali-g6/i.test(info.gpu)) tierScore += 20;
+
+  if (tierScore >= 90)      info.tier = 'Extreme';
+  else if (tierScore >= 60) info.tier = 'High';
+  else if (tierScore >= 35) info.tier = 'Medium';
+  else                      info.tier = 'Low';
+
+  /* GPU class */
+  if (/adreno 7|apple m|rtx|rx 6|rx 7/i.test(info.gpu))        info.gpuClass = 'Ultra';
+  else if (/adreno 6|mali-g7|mali-g9|gtx 10|gtx 16/i.test(info.gpu)) info.gpuClass = 'High';
+  else if (/adreno 5|mali-g5|mali-g6/i.test(info.gpu))          info.gpuClass = 'Mid';
+  else                                                            info.gpuClass = 'Entry';
+
+  /* Recommended max duration */
+  const durMap = { Extreme: '5+ minutes', High: '3 minutes', Medium: '90 seconds', Low: '30 seconds' };
+  info.maxDuration = durMap[info.tier] || '60 seconds';
+
+  State.performanceTier = info.tier;
+  return info;
+}
+
+/* ─── Refresh rate measurement ─── */
+function measureRefreshRate() {
+  return new Promise(resolve => {
+    const times = [];
+    let last = performance.now();
+    let count = 0;
+    function frame(now) {
+      times.push(now - last);
+      last = now;
+      count++;
+      if (count < 60) requestAnimationFrame(frame);
+      else {
+        const avg = times.reduce((a, b) => a + b, 0) / times.length;
+        resolve(Math.round(1000 / avg));
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+/* ═══════════════════════════════════════
+   BUILD DEVICE INFO CARDS
+═══════════════════════════════════════ */
+async function buildDeviceInfo() {
+  const container = $id('device-cards-container');
+  container.innerHTML = '<div class="info-card"><div class="info-card-title">Scanning device...</div></div>';
+
+  /* Measure refresh rate async */
+  const refreshHz = await measureRefreshRate();
+  if (State.deviceInfo) State.deviceInfo.refreshRate = refreshHz + ' Hz (est.)';
+
+  const d = State.deviceInfo || collectDeviceInfo();
+  State.deviceInfo = d;
+
+  container.innerHTML = `
+    <div class="info-card">
+      <div class="info-card-title">Device Identity</div>
+      <div class="info-row"><span class="info-label">Model</span><span class="info-value">${d.model}</span></div>
+      <div class="info-row"><span class="info-label">OS</span><span class="info-value">${d.os}</span></div>
+      <div class="info-row"><span class="info-label">Touch</span><span class="info-value">${d.touch}</span></div>
+      <div class="info-row"><span class="info-label">Network</span><span class="info-value">${d.network}</span></div>
+      <div class="info-row"><span class="info-label">Battery</span><span class="info-value">${d.battery}</span></div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">CPU &amp; Memory</div>
+      <div class="info-row"><span class="info-label">Architecture</span><span class="info-value">${d.cpuArch}</span></div>
+      <div class="info-row"><span class="info-label">CPU Cores</span><span class="info-value">${d.cpuCores}</span></div>
+      <div class="info-row"><span class="info-label">Est. RAM</span><span class="info-value">${d.ram}</span></div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">Display</div>
+      <div class="info-row"><span class="info-label">Resolution</span><span class="info-value">${d.resolution}</span></div>
+      <div class="info-row"><span class="info-label">Pixel Ratio</span><span class="info-value">${d.pixelRatio}x</span></div>
+      <div class="info-row"><span class="info-label">Refresh Rate</span><span class="info-value">${d.refreshRate}</span></div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">GPU</div>
+      <div class="info-row"><span class="info-label">Renderer</span><span class="info-value">${d.gpu}</span></div>
+      <div class="info-row"><span class="info-label">Vendor</span><span class="info-value">${d.gpuVendor}</span></div>
+      <div class="info-row"><span class="info-label">GPU Class</span><span class="info-value">${d.gpuClass}</span></div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">Sensors</div>
+      <div class="info-row"><span class="info-label">Available</span><span class="info-value">${d.sensors}</span></div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">PWA Info</div>
+      <div class="info-row"><span class="info-label">Display Mode</span><span class="info-value">${detectDisplayMode()}</span></div>
+      <div class="info-row"><span class="info-label">SW Support</span><span class="info-value">${'serviceWorker' in navigator ? 'Yes' : 'No'}</span></div>
+      <div class="info-row"><span class="info-label">Cache API</span><span class="info-value">${'caches' in window ? 'Yes' : 'No'}</span></div>
+      <div class="info-row"><span class="info-label">Online</span><span class="info-value">${State.isOnline ? 'Yes' : 'No (Offline)'}</span></div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-title">Performance Analysis</div>
+      <div class="info-row">
+        <span class="info-label">Tier</span>
+        <span class="info-value"><span class="tier-badge tier-${d.tier.toLowerCase()}">${d.tier}</span></span>
+      </div>
+      <div class="info-row"><span class="info-label">GPU Strength</span><span class="info-value">${d.gpuClass}</span></div>
+      <div class="info-row"><span class="info-label">Max Stress Duration</span><span class="info-value">${d.maxDuration}</span></div>
+      <div class="info-row"><span class="info-label">Current FPS</span><span class="info-value" id="dev-fps-live">--</span></div>
+    </div>
+  `;
+
+  /* Live FPS update while on device screen */
+  const interval = setInterval(() => {
+    if (State.currentScreen !== 'screen-device') { clearInterval(interval); return; }
+    const el = $id('dev-fps-live');
+    if (el) el.textContent = State.globalFPS + ' FPS';
+  }, 1000);
+}
+
+/* ═══════════════════════════════════════
+   MONITOR SCREEN — SPARKLINE
+═══════════════════════════════════════ */
+let sparklineInterval = null;
+
+function startSparklineRender() {
+  if (sparklineInterval) clearInterval(sparklineInterval);
+  sparklineInterval = setInterval(() => {
+    if (State.currentScreen !== 'screen-monitor') {
+      clearInterval(sparklineInterval);
+      return;
+    }
+    drawSparkline();
+    updateMonitorMetrics();
+  }, 250);
+}
+
+function drawSparkline() {
+  const canvas = $id('fps-sparkline');
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  canvas.width  = Math.max(parent.clientWidth - 32, 100);
+  canvas.height = 60;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const data = State.fpsHistory;
+  if (data.length < 2) return;
+
+  const max  = 120;
+  const w    = canvas.width;
+  const h    = canvas.height;
+  const step = w / (data.length - 1);
+
+  /* Subtle grid lines at 30/60/90 FPS */
+  ctx.strokeStyle = 'rgba(90,82,72,0.15)';
+  ctx.lineWidth = 1;
+  [30, 60, 90].forEach(fps => {
+    const y = h - (fps / max) * h;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  });
+
+  /* Fill gradient */
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, 'rgba(106,143,175,0.5)');
+  grad.addColorStop(1, 'rgba(106,143,175,0.05)');
+
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = i * step;
+    const y = h - Math.min(v, max) / max * h;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo((data.length - 1) * step, h);
+  ctx.lineTo(0, h);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  /* Line */
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(106,143,175,0.9)';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  data.forEach((v, i) => {
+    const x = i * step;
+    const y = h - Math.min(v, max) / max * h;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+function updateMonitorMetrics() {
+  const fps = State.globalFPS;
+  $id('mon-fps').textContent = fps || '--';
+  $id('mon-frametime').textContent = State.globalFrameTime.toFixed(1);
+  $id('mon-spike').textContent = State.spikes;
+
+  /* 10s average */
+  const buf = State.fpsBuffer10s;
+  const avg = buf.length ? Math.round(buf.reduce((a,b) => a+b, 0) / buf.length) : 0;
+  $id('mon-avg').textContent = avg || '--';
+
+  /* 1% low */
+  if (buf.length > 10) {
+    const sorted = [...buf].sort((a, b) => a - b);
+    const onePercent = Math.round(sorted[Math.floor(sorted.length * 0.01)]);
+    $id('mon-min').textContent = onePercent;
+  }
+
+  /* Variance */
+  if (State.fpsHistory.length > 10) {
+    const mean     = State.fpsHistory.reduce((a,b) => a+b, 0) / State.fpsHistory.length;
+    const variance = Math.sqrt(State.fpsHistory.reduce((a,b) => a+(b-mean)**2, 0) / State.fpsHistory.length);
+    const varPct   = Math.min(variance / 30 * 100, 100);
+    $id('mon-variance-bar').style.width = varPct + '%';
+    $id('mon-variance-val').textContent = variance < 5 ? 'Stable' : variance < 15 ? 'Minor Variance' : variance < 25 ? 'Unstable' : 'Chaotic';
+  }
+}
+
+/* ═══════════════════════════════════════
+   STABILITY SCREEN
+═══════════════════════════════════════ */
+function updateStabilityScreen() {
+  const fps     = State.globalFPS;
+  const history = State.fpsHistory;
+  const mean    = history.length ? history.reduce((a,b) => a+b, 0) / history.length : 60;
+  const variance = history.length > 5
+    ? Math.sqrt(history.reduce((a,b) => a+(b-mean)**2, 0) / history.length)
+    : 0;
+
+  /* Risk score 0–100 */
+  let risk = 0;
+  if (fps < 20) risk += 50;
+  else if (fps < 40) risk += 20;
+  if (variance > 20) risk += 30;
+  else if (variance > 10) risk += 15;
+  if (State.shaderRunning) risk += 10;
+  if (!State.isOnline) risk += 5;
+  risk = Math.min(risk, 100);
+
+  $id('risk-bar').style.width = risk + '%';
+  $id('risk-value-text').textContent = risk < 20 ? 'Low' : risk < 50 ? 'Moderate' : risk < 75 ? 'High' : 'Critical';
+  $id('stab-fps-stability').textContent = fps > 50 ? 'Excellent' : fps > 30 ? 'Good' : fps > 15 ? 'Poor' : 'Critical';
+  $id('stab-frame-var').textContent     = variance < 5 ? 'Normal' : variance < 15 ? 'Elevated' : 'High';
+  $id('stab-test-active').textContent   = State.shaderRunning ? 'YES — ACTIVE' : 'No';
+
+  const tier    = State.performanceTier;
+  const tierEl  = $id('stab-tier');
+  tierEl.textContent = tier;
+  tierEl.className   = 'tier-badge tier-' + tier.toLowerCase();
+
+  /* Memory pressure estimate */
+  const cores  = navigator.hardwareConcurrency || 2;
+  const ram    = navigator.deviceMemory || 2;
+  const memLoad = Math.min((State.shaderRunning ? 70 : 20) + (cores < 4 ? 20 : 0) + (ram < 2 ? 15 : 0), 95);
+  $id('stab-mem-bar').style.width      = memLoad + '%';
+  $id('stab-mem-bar').style.background = memLoad > 70 ? '#b85a5a' : memLoad > 40 ? '#b87a5a' : '#7a9a7a';
+  $id('stab-mem-text').textContent     = `Estimated pressure: ${memLoad}% ${memLoad > 70 ? '— HIGH' : memLoad > 40 ? '— MODERATE' : '— NORMAL'}`;
+
+  /* PWA info */
+  updatePWAStatusUI();
+
+  /* Auto-refresh while on stability screen */
+  setTimeout(() => {
+    if (State.currentScreen === 'screen-stability') updateStabilityScreen();
+  }, 2000);
+}
+
+/* ═══════════════════════════════════════
+   SHADER WARNING ENTRY
+═══════════════════════════════════════ */
+function openShaderWarning() {
+  showModal(
+    'Warning — Extreme Test',
+    'This test applies EXTREME visual load and may cause severe lag or heat. The benchmark is designed to overwhelm even high-end hardware. Particle count and intensity escalate continuously and never plateau. Proceed only if you fully understand the risk.',
+    [
+      { text: 'Cancel', cls: 'btn-secondary', action: null },
+      {
+        text: 'Start Test',
+        cls: 'btn-danger',
+        action: () => {
+          showLoader('PREPARING SHADER');
+          animateLoader(800).then(() => {
+            hideLoader();
+            showScreen('screen-shader');
+          });
+        }
+      },
+    ]
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   EXTREME VOLUME SHADER BENCHMARK
+   Pure Canvas 2D — maximum visual and CPU/GPU stress
+   Designed to lag even flagship hardware intentionally
+═══════════════════════════════════════════════════════ */
+
+const Shader = {
+  canvas: null,
+  ctx: null,
+  particles: [],
+  running: false,
+  rotX: 0.4,
+  rotY: 0,
+  rotZ: 0,
+  autoRotX: 0.003,
+  autoRotY: 0.007,
+  scrollVelocity: 0,
+  lastSwipeY: 0,
+  startTime: 0,
+  frameCount: 0,
+  particleTarget: 800,
+  layerCount: 8,
+  radius: 200,
+  intensity: 0,
+  deformTime: 0,
+  lowFPSFrames: 0,
+  fpsCheckBuffer: [],
+  shaderRafId: null,
+};
+
+const MAX_PARTICLES  = 12000;
+const MAX_LAYERS     = 32;
+
+/* ─── Start shader ─── */
+function startShader() {
+  const canvas = $id('shader-canvas');
+  Shader.canvas          = canvas;
+  Shader.ctx             = canvas.getContext('2d');
+  Shader.running         = true;
+  Shader.startTime       = performance.now();
+  Shader.frameCount      = 0;
+  Shader.particleTarget  = 800;
+  Shader.layerCount      = 8;
+  Shader.intensity       = 0;
+  Shader.rotX            = 0.4;
+  Shader.rotY            = 0;
+  Shader.rotZ            = 0;
+  Shader.scrollVelocity  = 0;
+  Shader.deformTime      = 0;
+  Shader.lowFPSFrames    = 0;
+  Shader.fpsCheckBuffer  = [];
+  Shader.particles       = [];
+  State.shaderRunning    = true;
+  State.lowFPSCounter    = 0;
+
+  resizeShaderCanvas();
+  generateParticles(Shader.particleTarget);
+
+  /* Attach input listeners */
+  canvas.addEventListener('wheel',      onShaderWheel,      { passive: true });
+  canvas.addEventListener('touchstart', onShaderTouchStart, { passive: true });
+  canvas.addEventListener('touchmove',  onShaderTouchMove,  { passive: true });
+  canvas.addEventListener('mousemove',  onShaderMouseMove,  { passive: true });
+
+  /* Hide scroll hint after 3s */
+  const hint = $id('scroll-hint');
+  if (hint) {
+    hint.style.opacity = '1';
+    setTimeout(() => { hint.style.opacity = '0'; }, 3000);
+  }
+
+  shaderLastTime = performance.now();
+  shaderLoop(shaderLastTime);
+}
+
+/* ─── Resize canvas to fill screen ─── */
+function resizeShaderCanvas() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W   = window.innerWidth;
+  const H   = window.innerHeight;
+  Shader.canvas.width  = W * dpr;
+  Shader.canvas.height = H * dpr;
+  Shader.canvas.style.width  = W + 'px';
+  Shader.canvas.style.height = H + 'px';
+  Shader.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  Shader.radius = Math.min(W, H) * 0.35;
+}
+
+/* ─── Generate particles ─── */
+function generateParticles(count) {
+  Shader.particles = [];
+  for (let i = 0; i < count; i++) addParticle();
+}
+
+function addParticle() {
+  /* Bias toward surface layers for visual density */
+  const layerFactor = Math.random();
+  const r     = Shader.radius * (0.1 + layerFactor * 0.9);
+  const theta = Math.acos(2 * Math.random() - 1);
+  const phi   = Math.random() * Math.PI * 2;
+  const x     = r * Math.sin(theta) * Math.cos(phi);
+  const y     = r * Math.sin(theta) * Math.sin(phi);
+  const z     = r * Math.cos(theta);
+
+  const size  = 0.5 + Math.random() * 2.5 * (layerFactor > 0.8 ? 1.5 : 1);
+
+  /* Color zones by depth layer */
+  let hue, sat, light;
+  if (layerFactor < 0.2) {
+    /* Core: bright warm */
+    hue = 30 + Math.random() * 20; sat = 60 + Math.random() * 40; light = 80 + Math.random() * 20;
+  } else if (layerFactor < 0.5) {
+    /* Mid: clay orange */
+    hue = 15 + Math.random() * 30; sat = 50 + Math.random() * 40; light = 50 + Math.random() * 30;
+  } else if (layerFactor < 0.8) {
+    /* Outer: blue-stone */
+    hue = 200 + Math.random() * 40; sat = 30 + Math.random() * 40; light = 40 + Math.random() * 40;
+  } else {
+    /* Surface haze: random */
+    hue = Math.random() * 360; sat = 20 + Math.random() * 50; light = 60 + Math.random() * 35;
+  }
+
+  Shader.particles.push({
+    x, y, z,
+    ox: x, oy: y, oz: z,
+    size, hue, sat, light,
+    alpha: 0.3 + Math.random() * 0.7,
+    layer: layerFactor,
+    noiseScale: 0.8 + Math.random() * 0.4,
+    noisePhase: Math.random() * Math.PI * 2,
+    noiseSpeed: 0.5 + Math.random() * 1.5,
+  });
+}
+
+/* ─── 3D rotation ─── */
+function rotatePoint(px, py, pz, rx, ry, rz) {
+  /* Rotate Y axis */
+  let cx = Math.cos(ry), sx = Math.sin(ry);
+  let nx = cx * px + sx * pz;
+  let nz = -sx * px + cx * pz;
+  px = nx; pz = nz;
+
+  /* Rotate X axis */
+  let cy = Math.cos(rx), sy = Math.sin(rx);
+  let ny = cy * py - sy * pz;
+  nz = sy * py + cy * pz;
+  py = ny; pz = nz;
+
+  /* Rotate Z axis */
+  let cz = Math.cos(rz), sz = Math.sin(rz);
+  nx = cz * px - sz * py;
+  ny = sz * px + cz * py;
+  px = nx; py = ny;
+
+  return [px, py, pz];
+}
+
+/* ─── Perspective projection ─── */
+function project(px, py, pz) {
+  const fov   = 500;
+  const depth = fov + pz;
+  const scale = depth > 1 ? fov / depth : 1;
+  const cx    = window.innerWidth  / 2;
+  const cy    = window.innerHeight / 2 - 30;
+  return [cx + px * scale, cy + py * scale, scale, pz];
+}
+
+/* ─── Main shader render loop ─── */
+let shaderLastTime = 0;
+
+function shaderLoop(now) {
+  if (!Shader.running) return;
+
+  const dt      = Math.min(now - shaderLastTime, 100);
+  shaderLastTime = now;
+
+  const elapsed = (now - Shader.startTime) / 1000;
+  Shader.frameCount++;
+  Shader.deformTime += dt * 0.001;
+
+  /* ── Intensity escalation — always increasing, never constant ── */
+  const baseIntensity  = Math.min(elapsed / 60, 1);
+  const scrollBoost    = Math.abs(Shader.scrollVelocity) * 0.012;
+  Shader.intensity     = Math.min(baseIntensity + scrollBoost, 1);
+
+  /* Escalate particle count */
+  const targetP = Math.floor(800 + Shader.intensity * (MAX_PARTICLES - 800) + scrollBoost * 4000);
+  Shader.particleTarget = Math.min(targetP, MAX_PARTICLES);
+
+  /* Add particles in batches every other frame */
+  if (Shader.particles.length < Shader.particleTarget && Shader.frameCount % 2 === 0) {
+    const addCount = Math.min(60 + Math.floor(Shader.intensity * 250), 500);
+    for (let i = 0; i < addCount; i++) addParticle();
+  }
+
+  /* Escalate layers */
+  Shader.layerCount = Math.floor(8 + Shader.intensity * (MAX_LAYERS - 8));
+
+  /* ── Rotation ── */
+  Shader.scrollVelocity *= 0.92;
+  Shader.rotY += Shader.autoRotY + Shader.scrollVelocity * 0.04;
+  Shader.rotX += Shader.autoRotX + Math.sin(elapsed * 0.3) * 0.001;
+  Shader.rotZ += 0.001 + Shader.intensity * 0.003;
+
+  /* ── Clear canvas with motion persistence (ghost trails) ── */
+  const ctx    = Shader.ctx;
+  const W      = window.innerWidth;
+  const H      = window.innerHeight;
+  const trailA = 0.15 + (1 - Shader.intensity) * 0.35;
+  ctx.fillStyle = `rgba(232,228,222,${trailA})`;
+  ctx.fillRect(0, 0, W, H);
+
+  /* ── Sort particles back-to-front for painter's algorithm ── */
+  const count = Shader.particles.length;
+  const projected = new Array(count);
+
+  for (let i = 0; i < count; i++) {
+    const p = Shader.particles[i];
+    const t = Shader.deformTime;
+
+    /* Turbulence / deformation offsets */
+    const tx = p.ox + Math.sin(t * p.noiseSpeed + p.noisePhase) * Shader.radius * 0.12 * Shader.intensity * p.noiseScale;
+    const ty = p.oy + Math.cos(t * p.noiseSpeed * 0.7 + p.noisePhase) * Shader.radius * 0.10 * Shader.intensity * p.noiseScale;
+    const tz = p.oz + Math.sin(t * p.noiseSpeed * 0.5 + p.noisePhase * 2) * Shader.radius * 0.08 * Shader.intensity;
+
+    const [rx, ry, rz] = rotatePoint(tx, ty, tz, Shader.rotX, Shader.rotY, Shader.rotZ);
+    const [sx, sy, sc, pz] = project(rx, ry, rz);
+    projected[i] = { p, sx, sy, sc, pz };
+  }
+
+  /* Sort by Z depth */
+  projected.sort((a, b) => a.pz - b.pz);
+
+  /* ── Overdraw passes for volumetric layering ── */
+  const overdrawPasses = 1 + Math.floor(Shader.intensity * 4);
+
+  for (let pass = 0; pass < overdrawPasses; pass++) {
+    const passOff   = pass * 0.5;
+    const passAlpha = 1 / (overdrawPasses * 0.8 + 1);
+
+    for (let i = 0; i < projected.length; i++) {
+      const { p, sx, sy, sc, pz } = projected[i];
+      if (sx < -60 || sx > W + 60 || sy < -60 || sy > H + 60) continue;
+
+      const depthFactor = Math.max(0, (pz + Shader.radius) / (Shader.radius * 2));
+      const alpha       = p.alpha * passAlpha * (0.4 + depthFactor * 0.6);
+      const baseSize    = p.size * sc;
+      const varSize     = baseSize * (1 + Shader.intensity * 0.5 + Math.sin(Shader.deformTime * p.noiseSpeed + p.noisePhase + passOff) * 0.3 * Shader.intensity);
+      const drawSize    = Math.max(0.5, varSize);
+
+      /* Hue shift over time */
+      const hShift   = Shader.intensity * 60 * Math.sin(Shader.deformTime * 0.5 + p.noisePhase);
+      const finalHue = (p.hue + hShift) % 360;
+      const finalL   = p.light + Math.sin(Shader.deformTime * p.noiseSpeed) * 10 * Shader.intensity;
+
+      ctx.save();
+      ctx.globalAlpha = Math.min(alpha, 0.95);
+
+      /* Glow effect for large outer particles at high intensity */
+      if (Shader.intensity > 0.3 && p.layer > 0.6 && drawSize > 1.5) {
+        const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, drawSize * 2.5);
+        grad.addColorStop(0, `hsla(${finalHue},${p.sat}%,${finalL}%,0.9)`);
+        grad.addColorStop(1, `hsla(${finalHue},${p.sat}%,${finalL}%,0)`);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sx, sy, drawSize * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = `hsla(${finalHue},${p.sat}%,${finalL}%,1)`;
+        ctx.beginPath();
+        ctx.arc(sx, sy, Math.max(0.5, drawSize), 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  /* ── Energy rays (high intensity only) ── */
+  if (Shader.intensity > 0.5 && Shader.frameCount % 3 === 0) {
+    drawEnergyRays(ctx, elapsed);
+  }
+
+  /* ── Pressure rings ── */
+  if (Shader.intensity > 0.2) {
+    drawPressureRings(ctx, elapsed);
+  }
+
+  /* ── Micro-particle scatter (intense mode) ── */
+  if (Shader.intensity > 0.4) {
+    drawMicroParticles(ctx);
+  }
+
+  /* ── Update UI badges ── */
+  updateShaderBadges(elapsed);
+
+  /* ── Safety: FPS check for auto-kickout ── */
+  Shader.fpsCheckBuffer.push(State.globalFPS);
+  if (Shader.fpsCheckBuffer.length > 60) Shader.fpsCheckBuffer.shift();
+  if (Shader.fpsCheckBuffer.length >= 30) {
+    const avgFPS = Shader.fpsCheckBuffer.reduce((a,b) => a+b, 0) / Shader.fpsCheckBuffer.length;
+    if (avgFPS < 12 && avgFPS > 0) {
+      Shader.lowFPSFrames++;
+      if (Shader.lowFPSFrames >= 5) {
+        triggerSafetyKickout();
+        return;
+      }
+    } else {
+      Shader.lowFPSFrames = 0;
+    }
+  }
+
+  Shader.shaderRafId = requestAnimationFrame(shaderLoop);
+}
+
+/* ─── Energy rays — internal turbulence lines ─── */
+function drawEnergyRays(ctx, elapsed) {
+  const cx       = window.innerWidth  / 2;
+  const cy       = window.innerHeight / 2 - 30;
+  const rayCount = Math.floor(6 + Shader.intensity * 20);
+
+  ctx.save();
+  for (let i = 0; i < rayCount; i++) {
+    const angle  = (i / rayCount) * Math.PI * 2 + elapsed * 0.3 + Math.sin(elapsed + i) * 0.5;
+    const length = Shader.radius * (0.3 + Math.random() * 0.7) * Shader.intensity;
+    const alpha  = 0.03 + Math.random() * 0.06 * Shader.intensity;
+    const hue    = 15 + Math.random() * 40;
+    ctx.strokeStyle = `hsla(${hue},80%,70%,${alpha})`;
+    ctx.lineWidth   = 0.5 + Math.random() * 2 * Shader.intensity;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * length, cy + Math.sin(angle) * length);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ─── Pressure rings — concentric depth zones ─── */
+function drawPressureRings(ctx, elapsed) {
+  const cx        = window.innerWidth  / 2;
+  const cy        = window.innerHeight / 2 - 30;
+  const ringCount = Math.floor(Shader.layerCount / 2);
+
+  ctx.save();
+  for (let i = 0; i < ringCount; i++) {
+    const r     = Shader.radius * (0.2 + (i / ringCount) * 0.8);
+    const alpha = 0.04 + 0.08 * Shader.intensity;
+    const hue   = 200 + i * 15;
+    ctx.strokeStyle = `hsla(${hue},50%,60%,${alpha})`;
+    ctx.lineWidth   = 1 + Shader.intensity * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ─── Micro-particle scatter — fills gaps with chaos ─── */
+function drawMicroParticles(ctx) {
+  const cx         = window.innerWidth  / 2;
+  const cy         = window.innerHeight / 2 - 30;
+  const microCount = Math.floor(200 * Shader.intensity);
+
+  ctx.save();
+  for (let i = 0; i < microCount; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist  = Math.random() * Shader.radius * 1.2;
+    const x     = cx + Math.cos(angle) * dist;
+    const y     = cy + Math.sin(angle) * dist;
+    const size  = 0.3 + Math.random() * 1.2;
+    const alpha = (0.1 + Math.random() * 0.4) * Shader.intensity;
+    const hue   = Math.random() * 60 + 10;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle   = `hsl(${hue},70%,75%)`;
+    ctx.fillRect(x - size / 2, y - size / 2, size, size);
+  }
+  ctx.restore();
+}
+
+/* ─── Update shader UI badges ─── */
+function updateShaderBadges(elapsed) {
+  const iLevel   = Math.floor(Shader.intensity * 100);
+  let intLabel   = 'WARMING UP';
+  if (iLevel > 90)      intLabel = 'CATASTROPHIC';
+  else if (iLevel > 70) intLabel = 'EXTREME';
+  else if (iLevel > 50) intLabel = 'SEVERE';
+  else if (iLevel > 30) intLabel = 'HIGH';
+  else if (iLevel > 10) intLabel = 'MODERATE';
+
+  const fps_b = $id('sh-fps-badge');
+  const prt_b = $id('sh-particles-badge');
+  const lay_b = $id('sh-layers-badge');
+  const tim_b = $id('sh-timer-badge');
+  const int_b = $id('sh-intensity-badge');
+  const int_bar = $id('sh-intensity-bar');
+
+  if (fps_b)   fps_b.textContent = State.globalFPS + ' FPS';
+  if (prt_b)   prt_b.textContent = Shader.particles.length.toLocaleString() + ' PARTICLES';
+  if (lay_b)   lay_b.textContent = Shader.layerCount + ' LAYERS';
+  if (tim_b)   tim_b.textContent = Math.floor(elapsed) + 's';
+  if (int_b)   int_b.textContent = intLabel;
+  if (int_bar) int_bar.style.width = iLevel + '%';
+}
+
+/* ─── Input handlers ─── */
+function onShaderWheel(e) {
+  Shader.scrollVelocity += e.deltaY * 0.003;
+  Shader.scrollVelocity = Math.max(-8, Math.min(8, Shader.scrollVelocity));
+}
+
+function onShaderTouchStart(e) {
+  Shader.lastSwipeY = e.touches[0].clientY;
+}
+
+function onShaderTouchMove(e) {
+  const dy = e.touches[0].clientY - Shader.lastSwipeY;
+  Shader.scrollVelocity -= dy * 0.015;
+  Shader.scrollVelocity  = Math.max(-10, Math.min(10, Shader.scrollVelocity));
+  Shader.lastSwipeY      = e.touches[0].clientY;
+  /* Side movement affects X tilt */
+  const dx = e.touches[0].clientX - window.innerWidth / 2;
+  Shader.rotX += dx * 0.0001;
+}
+
+function onShaderMouseMove(e) {
+  if (e.buttons > 0) {
+    Shader.scrollVelocity += e.movementY * 0.02;
+    Shader.scrollVelocity = Math.max(-8, Math.min(8, Shader.scrollVelocity));
+  }
+}
+
+/* ─── Stop shader cleanly ─── */
+function stopShader() {
+  if (!Shader.running) return;
+  Shader.running      = false;
+  State.shaderRunning = false;
+
+  if (Shader.shaderRafId) cancelAnimationFrame(Shader.shaderRafId);
+
+  const canvas = Shader.canvas;
+  if (canvas) {
+    canvas.removeEventListener('wheel',      onShaderWheel);
+    canvas.removeEventListener('touchstart', onShaderTouchStart);
+    canvas.removeEventListener('touchmove',  onShaderTouchMove);
+    canvas.removeEventListener('mousemove',  onShaderMouseMove);
+    if (Shader.ctx) Shader.ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  /* Free particle memory */
+  Shader.particles = [];
+
+  showScreen('screen-dashboard');
+}
+
+/* ─── Safety auto-kickout ─── */
+function triggerSafetyKickout() {
+  if (!Shader.running) return;
+
+  /* Fade canvas to white before leaving */
+  const canvas = Shader.canvas;
+  if (canvas && Shader.ctx) {
+    let alpha = 0;
+    const fade = () => {
+      if (!Shader.ctx || alpha >= 1) return;
+      alpha += 0.06;
+      Shader.ctx.fillStyle = `rgba(232,228,222,${alpha})`;
+      Shader.ctx.fillRect(0, 0, canvas.width, canvas.height);
+      requestAnimationFrame(fade);
+    };
+    requestAnimationFrame(fade);
+  }
+
+  stopShader();
+
+  setTimeout(() => {
+    showModal(
+      'Test Stopped',
+      'Extreme instability detected. The test was automatically terminated to protect your device.',
+      [{ text: 'OK', cls: 'btn-primary', action: null }]
+    );
+  }, 300);
+}
+
+/* ═══════════════════════════════════════
+   WINDOW RESIZE
+═══════════════════════════════════════ */
+window.addEventListener('resize', () => {
+  if (Shader.running && Shader.canvas) resizeShaderCanvas();
+});
+
+/* ═══════════════════════════════════════
+   APP INIT
+═══════════════════════════════════════ */
+function init() {
+  /* 1. Setup network detection */
+  setupNetworkDetection();
+
+  /* 2. Register inline Service Worker */
+  registerInlineSW();
+
+  /* 3. Detect and mark PWA display mode */
+  State.displayMode = detectDisplayMode();
+
+  /* 4. Show boot loader */
+  showLoader('DEVCORE ULTRA');
+
+  /* 5. Animate loader then go to agreement */
+  animateLoader(1200).then(() => {
+    hideLoader();
+    showScreen('screen-agreement');
+    initAgreement();
+  });
+}
+
+/* ─── Boot ─── */
+init();
+</script>
+</body>
+</html>
